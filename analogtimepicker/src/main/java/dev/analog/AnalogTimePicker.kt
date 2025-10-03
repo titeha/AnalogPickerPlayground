@@ -1,6 +1,5 @@
 package dev.analog
 
-import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
@@ -13,7 +12,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -45,9 +43,6 @@ fun AnalogTimePicker(
 
   // Track hour-hand additional revolution in 12h mode
   var hourTurns by remember { mutableStateOf( if (is24h) 0 else if (time.hour >= 12) 1 else 0) }
-
-  val density = LocalDensity.current
-  val rPx = with(density) { radius.toPx() }
 
   fun commit(newMinutes: Int) {
     val total = ((newMinutes % (24*60)) + (24*60)) % (24*60)
@@ -112,6 +107,9 @@ fun AnalogTimePicker(
     )
     Spacer(Modifier.height(12.dp))
 
+    var  primary = MaterialTheme.colorScheme.primary
+    var secondary = MaterialTheme.colorScheme.secondary
+
     Box(modifier = Modifier.size(radius * 2)) {
       Canvas(
         modifier = Modifier
@@ -164,11 +162,11 @@ fun AnalogTimePicker(
         // minute hand
         val am = Math.toRadians((m*6 - 90).toDouble())
         val mEnd = Offset(center.x + cos(am).toFloat()*(r*0.86f), center.y + sin(am).toFloat()*(r*0.86f))
-        drawLine(color = MaterialTheme.colorScheme.primary, start = center, end = mEnd, strokeWidth = 6f, cap = StrokeCap.Round)
+        drawLine(color = primary, start = center, end = mEnd, strokeWidth = 6f, cap = StrokeCap.Round)
         // hour hand
         val ah = Math.toRadians(((h%12 + m/60f)*30 - 90).toDouble())
         val hEnd = Offset(center.x + cos(ah).toFloat()*(r*0.6f), center.y + sin(ah).toFloat()*(r*0.6f))
-        drawLine(color = MaterialTheme.colorScheme.secondary, start = center, end = hEnd, strokeWidth = 8f, cap = StrokeCap.Round)
+        drawLine(color = secondary, start = center, end = hEnd, strokeWidth = 8f, cap = StrokeCap.Round)
         // hub
         drawCircle(color = Color.Black.copy(alpha = 0.6f), radius = 5f, center = center)
       }
