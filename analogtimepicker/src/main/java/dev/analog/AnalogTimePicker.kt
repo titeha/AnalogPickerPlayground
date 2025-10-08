@@ -1,6 +1,8 @@
 package dev.analog
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,6 +26,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
@@ -89,7 +92,8 @@ fun AnalogTimePicker(
     Text(
       text = "%02d:%02d".format(h, m),
       style = MaterialTheme.typography.headlineSmall,
-      fontWeight = FontWeight.Bold
+      fontWeight = FontWeight.Bold,
+      color = Color.Yellow
     )
     Spacer(Modifier.height(12.dp))
 
@@ -137,6 +141,34 @@ fun AnalogTimePicker(
             strokeWidth = if (i % 5 == 0) 3f else 1.5f,
             cap = StrokeCap.Round
           )
+        }
+
+        for (i in 0 until 12) {
+          val minuteValue = i * 5
+          val angle = Math.toRadians((i * 30 - 90).toDouble())
+
+          // Позиция цифры (немного дальше от центра чем деления)
+          val textRadius = r + 25f
+          val textPosition = Offset(
+            center.x + cos(angle).toFloat() * textRadius,
+            center.y + sin(angle).toFloat() * textRadius
+          )
+
+          val minuteText = if (minuteValue == 0) "60" else minuteValue.toString()
+
+          drawContext.canvas.nativeCanvas.apply {
+            drawText(
+              minuteText,
+              textPosition.x - 10f,
+              textPosition.y + 5f,
+              android.graphics.Paint().apply {
+                color = android.graphics.Color.GRAY
+                textSize = 60f
+                textAlign = android.graphics.Paint.Align.CENTER
+                isFakeBoldText = true
+              }
+            )
+          }
         }
 
         // Рисуем минутную стрелку
