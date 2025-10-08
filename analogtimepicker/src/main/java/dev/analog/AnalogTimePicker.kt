@@ -1,8 +1,6 @@
 package dev.analog
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -40,6 +38,8 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
+private enum class Hand { Minute, Hour }
+
 @Composable
 fun AnalogTimePicker(
   modifier: Modifier = Modifier,
@@ -52,7 +52,13 @@ fun AnalogTimePicker(
     mutableStateOf(time.hour * 60 + time.minute)
   }
 
+  var isPM by remember(time) {
+    mutableStateOf(time.hour >= 12)
+  }
+
   var snapEnabled by remember { mutableStateOf(snapTo5Minutes) }
+
+  var selectedHand by remember { mutableStateOf<Hand?>(null) }
 
   val updateTime: (Int) -> Unit = { newMinutes ->
     minutes = newMinutes
@@ -79,6 +85,48 @@ fun AnalogTimePicker(
     }
   }
 
+  fun calculateHours(position: Offset, size: Size): Pair<Int, Boolean> {
+    val center = Offset(size.width / 2f, size.height / 2f)
+    val dx = position.x - center.x
+    val dy = position.y - center.y
+
+    val angleRad = atan2(dy, dx)
+    val angleDeg = angleRad * 180f / PI.toFloat()
+    var clockAngle = (angleDeg + 90f) % 360f
+    if (clockAngle < 0) clockAngle += 360f
+
+    // 360° = 12 часов
+    val rawHour = (clockAngle / 360f * 12f)
+    val hour12 = rawHour.roundToInt() % 12
+
+    // Определяем переключение половины суток
+    var newIsPM = isPM
+
+    val currentHour12 = (minutes / 60) % 12
+    if (currentHour12 == 11 && hour12 == 0) {
+      newIsPM = !isPM
+    } else if (currentHour12 == 0 && hour12 == 11) {
+      newIsPM = !isPM
+    }
+
+    // Преобразуем в 24-часовой формат
+    var hour24 = if (newIsPM) hour12 + 12 else hour12
+    if (hour24 == 24) hour24 = 0
+
+    return hour24 to newIsPM
+  }
+
+  fun pickHand(position: Offset, center: Offset, dialRadius: Float): Hand {
+    val v = position - center
+    val dist = v.getDistance()
+
+    val angle = atan2(v.y, v.x) * 180f / PI.toFloat()
+    var clockAngle = (angle + 90f) % 360f
+    if (clockAngle < 0) clockAngle += 360f
+
+    return if (dist > dialRadius * 0.85f) Hand.Minute else Hand.Hour
+  }
+
   val density = LocalDensity.current
   val rPx = with(density) { radius.toPx() }
 
@@ -103,19 +151,40 @@ fun AnalogTimePicker(
       Canvas(
         modifier = Modifier
           .fillMaxSize()
-          .pointerInput(updateTime, minutes, snapEnabled) {
+          .pointerInput(updateTime, minutes, snapEnabled, isPM) {
             val canvasSize = Size(size.width.toFloat(), size.height.toFloat())
 
             awaitPointerEventScope {
               while (true) {
                 val event = awaitPointerEvent()
-                event.changes.forEach { change ->
-                  if (change.pressed) {
-                    val newMinutes = calculateMinutes(change.position, canvasSize)
-                    val totalMinutes = (minutes / 60) * 60 + newMinutes
-                    updateTime(totalMinutes)
-                    change.consume()
+                val pressedPointer = event.changes.find { it.pressed }
+                if (pressedPointer != null) {
+                  val center = Offset(size.width / 2f, size.height / 2f)
+                  val r = min(size.width, size.height) / 2f
+
+                  if (selectedHand == null) {
+                    selectedHand = pickHand(pressedPointer.position, center, r)
                   }
+
+                  when (selectedHand) {
+                    Hand.Minute -> {
+                      val newMinutes = calculateMinutes(pressedPointer.position, canvasSize)
+                      val totalMinutes = (minutes / 60) * 60 + newMinutes
+                      updateTime(totalMinutes)
+                    }
+
+                    Hand.Hour -> {
+                      val (newHour, newIsPM) = calculateHours(pressedPointer.position, canvasSize)
+                      val totalMinutes = newHour * 60 + (minutes % 60)
+                      isPM = newIsPM
+                      updateTime(totalMinutes)
+                    }
+
+                    null -> Unit
+                  }
+                  pressedPointer.consume()
+                } else {
+                  selectedHand = null
                 }
               }
             }
@@ -126,14 +195,21 @@ fun AnalogTimePicker(
 
         // Рисуем циферблат
         drawCircle(color = Color.Gray.copy(alpha = 0.12f), radius = r)
-        drawCircle(color = Color.Gray.copy(alpha = 0.32f), radius = r, style = Stroke(width = 2f))
+        drawCircle(
+          color = Color.Gray.copy(alpha = 0.32f),
+          radius = r,
+          style = Stroke(width = 2f)
+        )
 
         // Рисуем деления
         for (i in 0 until 60) {
           val a = Math.toRadians((i * 6 - 90).toDouble())
           val outer = Offset(center.x + cos(a).toFloat() * r, center.y + sin(a).toFloat() * r)
           val inner =
-            Offset(center.x + cos(a).toFloat() * (r - 8f), center.y + sin(a).toFloat() * (r - 8f))
+            Offset(
+              center.x + cos(a).toFloat() * (r - 8f),
+              center.y + sin(a).toFloat() * (r - 8f)
+            )
           drawLine(
             color = if (i % 5 == 0) Color.DarkGray else Color.Gray,
             start = inner,
@@ -144,28 +220,72 @@ fun AnalogTimePicker(
         }
 
         for (i in 0 until 12) {
-          val minuteValue = i * 5
           val angle = Math.toRadians((i * 30 - 90).toDouble())
 
+          // 1. Минутные цифры (снаружи)
+          val minuteValue = i * 5
+          val minuteText = if (minuteValue == 0) "60" else minuteValue.toString()
           // Позиция цифры (немного дальше от центра чем деления)
-          val textRadius = r + 25f
+          val textRadius = r + 35f
           val textPosition = Offset(
             center.x + cos(angle).toFloat() * textRadius,
             center.y + sin(angle).toFloat() * textRadius
           )
 
-          val minuteText = if (minuteValue == 0) "60" else minuteValue.toString()
+          // 2. Часовые цифры текущей половины (средний круг)
+          val currentHourValue = if (isPM) i + 12 else i
+          val currentHourText = if (currentHourValue == 24) "0" else currentHourValue.toString()
+          val currentHourRadius = r - 125f
+          val currentHourPosition = Offset(
+            center.x + cos(angle).toFloat() * currentHourRadius,
+            center.y + sin(angle).toFloat() * currentHourRadius
+          )
+
+          // 3. Часовые цифры противоположной половины (внутри)
+          val oppositeHourValue = if (!isPM) i + 12 else i
+          val oppositeHourText =
+            if (oppositeHourValue == 24) "0" else oppositeHourValue.toString()
+          val oppositeHourRadius = r - 190f
+          val oppositeHourPosition = Offset(
+            center.x + cos(angle).toFloat() * oppositeHourRadius,
+            center.y + sin(angle).toFloat() * oppositeHourRadius
+          )
 
           drawContext.canvas.nativeCanvas.apply {
+            // Рисуем минутные цифры
             drawText(
               minuteText,
               textPosition.x - 10f,
               textPosition.y + 5f,
               android.graphics.Paint().apply {
-                color = android.graphics.Color.GRAY
+                color = android.graphics.Color.LTGRAY
                 textSize = 60f
                 textAlign = android.graphics.Paint.Align.CENTER
                 isFakeBoldText = true
+              }
+            )
+
+            // Рисуем текущие часовые цифры (крупно)
+            drawText(
+              currentHourText,
+              currentHourPosition.x,
+              currentHourPosition.y,
+              android.graphics.Paint().apply {
+                color = android.graphics.Color.LTGRAY
+                textSize = 55f
+                textAlign = android.graphics.Paint.Align.CENTER
+                isFakeBoldText = true
+              })
+
+            // Рисуем противоположные часовые цифры (мелко)
+            drawText(
+              oppositeHourText,
+              oppositeHourPosition.x,
+              oppositeHourPosition.y,
+              android.graphics.Paint().apply {
+                color = android.graphics.Color.GRAY
+                textSize = 40f
+                textAlign = android.graphics.Paint.Align.CENTER
               }
             )
           }
@@ -182,6 +302,24 @@ fun AnalogTimePicker(
           start = center,
           end = minuteEnd,
           strokeWidth = 8f,
+          cap = StrokeCap.Round
+        )
+
+        // Рисуем часовую стрелку
+        val currentHour = minutes / 60
+        val hourAngle = Math.toRadians(((currentHour % 12) * 30 - 90).toDouble())
+        val hourEnd = Offset(
+          center.x + cos(hourAngle).toFloat() * (r * 0.5f),
+          center.y + sin(hourAngle).toFloat() * (r * 0.5f)
+        )
+
+        val hourHandColor = if (isPM) Color(0xFFFF8000) else Color(0xFFFFFF00)
+
+        drawLine(
+          color = hourHandColor,
+          start = center,
+          end = hourEnd,
+          strokeWidth = 14f,
           cap = StrokeCap.Round
         )
 
