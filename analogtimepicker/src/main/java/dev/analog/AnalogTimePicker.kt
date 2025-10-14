@@ -9,11 +9,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -26,7 +30,6 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -49,7 +52,7 @@ fun AnalogTimePicker(
   snapTo5Minutes: Boolean = true
 ) {
   var minutes by remember(time) {
-    mutableStateOf(time.hour * 60 + time.minute)
+    mutableIntStateOf(time.hour * 60 + time.minute)
   }
 
   var isPM by remember(time) {
@@ -126,9 +129,6 @@ fun AnalogTimePicker(
 
     return if (dist > dialRadius * 0.85f) Hand.Minute else Hand.Hour
   }
-
-  val density = LocalDensity.current
-  val rPx = with(density) { radius.toPx() }
 
   val h = minutes / 60
   val m = minutes % 60
@@ -350,4 +350,45 @@ fun AnalogTimePicker(
       )
     }
   }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AnalogTimePickerDialog(
+  initialTime: LocalTime = LocalTime.now(),
+  onTimeSelected: (LocalTime) -> Unit,
+  onDismiss: () -> Unit,
+  title: String = "Выберите время",
+  confirmButtonText: String = "Ok",
+  dismissButtonText: String = "Отмена",
+  radius: Dp = 200.dp,
+  snapToMinutes: Boolean = true
+) {
+  var currentTime by remember { mutableStateOf(initialTime) }
+  val typography = MaterialTheme.typography
+
+  AlertDialog(
+    onDismissRequest = onDismiss,
+    title = {
+      Text(
+        text = title,
+        style = typography.headlineSmall,
+        fontWeight = FontWeight.Bold
+      )
+    },
+    text = {
+      AnalogTimePicker(
+        time = currentTime,
+        onTimeChange = { newTime -> currentTime = newTime },
+        radius = radius,
+        snapTo5Minutes = snapToMinutes
+      )
+    },
+    confirmButton = {
+      TextButton(onClick = { onTimeSelected(currentTime) }) { Text(confirmButtonText) }
+    },
+    dismissButton = {
+      TextButton(onClick = onDismiss) { Text(dismissButtonText) }
+    }
+  )
 }

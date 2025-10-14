@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import dev.analog.AnalogTimePicker
+import dev.analog.AnalogTimePickerDialog
 import java.time.LocalTime
 
 class MainActivity : ComponentActivity() {
@@ -38,23 +39,35 @@ class MainActivity : ComponentActivity() {
           Text("Выбрано: $time", style = MaterialTheme.typography.titleLarge)
           Spacer(Modifier.height(16.dp))
 
-          // Встраиваемый виджет - ТОЛЬКО обязательные параметры
+          // Существующий встроенный виджет
           AnalogTimePicker(
             time = time,
-            onTimeChange = { newTime -> time = newTime },
-            snapTo5Minutes = true
+            onTimeChange = { time = it },
+            radius = 120.dp
           )
 
           Spacer(Modifier.height(16.dp))
+
+          // Кнопка для открытия диалога
           Button(onClick = { showDialog = true }) {
-            Text("Открыть диалог")
+            Text("Открыть диалог выбора времени")
           }
         }
 
-        // ВРЕМЕННО убираем диалог - добавим потом
-        // if (showDialog) {
-        //   AnalogTimePickerDialog(...)
-        // }
+        // Диалог
+        if (showDialog) {
+          AnalogTimePickerDialog(
+            initialTime = time,
+            onTimeSelected = { newTime ->
+              time = newTime
+              showDialog = false
+            },
+            onDismiss = { showDialog = false },
+            title = "Установите время",
+            confirmButtonText = "Выбрать",
+            dismissButtonText = "Отмена"
+          )
+        }
       }
     }
   }
