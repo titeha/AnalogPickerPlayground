@@ -27,12 +27,14 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import org.w3c.dom.Text
 import java.time.LocalTime
 import kotlin.math.PI
 import kotlin.math.atan2
@@ -42,6 +44,43 @@ import kotlin.math.roundToInt
 import kotlin.math.sin
 
 private enum class Hand { Minute, Hour }
+
+private fun calculateAngle(position: Offset, center: Offset): Float {
+  val dx = position.x - center.x
+  val dy = position.y - center.y
+  val angleRad = atan2(dy, dx)
+  val angleDeg = angleRad * 180f / PI.toFloat()
+  var clockAngle = (angleDeg + 90f) % 360f
+  if (clockAngle < 0) clockAngle += 360f
+  return clockAngle
+}
+
+private fun calculateCirclePoint(center: Offset, radius: Float, angleDeg: Double): Offset {
+  val angleRad = Math.toRadians(angleDeg)
+  return Offset(
+    center.x + cos(angleRad).toFloat() * radius,
+    center.y + sin(angleRad).toFloat() * radius
+  )
+}
+
+private fun DrawScope.drawClockText(
+  text: String,
+  position: Offset,
+  color: Int,
+  textSize: Float,
+  isBold: Boolean = false
+) {
+  drawContext.canvas.nativeCanvas.drawText(
+    text,
+    position.x,
+    position.y,
+    android.graphics.Paint().apply {
+      this.color = color
+      this.textSize = textSize
+      textAlign = android.graphics.Paint.Align.CENTER
+      isFakeBoldText = isBold
+    })
+}
 
 @Composable
 fun AnalogTimePicker(
@@ -60,7 +99,6 @@ fun AnalogTimePicker(
   }
 
   var snapEnabled by remember { mutableStateOf(snapTo5Minutes) }
-
   var selectedHand by remember { mutableStateOf<Hand?>(null) }
 
   val updateTime: (Int) -> Unit = { newMinutes ->
@@ -72,14 +110,7 @@ fun AnalogTimePicker(
 
   fun calculateMinutes(position: Offset, size: Size): Int {
     val center = Offset(size.width / 2f, size.height / 2f)
-    val dx = position.x - center.x
-    val dy = position.y - center.y
-
-    val angleRad = atan2(dy, dx)
-    val angleDeg = angleRad * 180f / PI.toFloat()
-    var clockAngle = (angleDeg + 90f) % 360f
-    if (clockAngle < 0) clockAngle += 360f
-
+    var clockAngle = calculateAngle(position, center)
     val rawMinutes = (clockAngle / 360f * 60f)
     return if (snapEnabled) {
       (rawMinutes / 5f).roundToInt() * 5 % 60
@@ -90,13 +121,7 @@ fun AnalogTimePicker(
 
   fun calculateHours(position: Offset, size: Size): Pair<Int, Boolean> {
     val center = Offset(size.width / 2f, size.height / 2f)
-    val dx = position.x - center.x
-    val dy = position.y - center.y
-
-    val angleRad = atan2(dy, dx)
-    val angleDeg = angleRad * 180f / PI.toFloat()
-    var clockAngle = (angleDeg + 90f) % 360f
-    if (clockAngle < 0) clockAngle += 360f
+    var clockAngle = calculateAngle(position, center)
 
     // 360° = 12 часов
     val rawHour = (clockAngle / 360f * 12f)
@@ -251,44 +276,15 @@ fun AnalogTimePicker(
             center.y + sin(angle).toFloat() * oppositeHourRadius
           )
 
-          drawContext.canvas.nativeCanvas.apply {
-            // Рисуем минутные цифры
-            drawText(
-              minuteText,
-              textPosition.x - 10f,
-              textPosition.y + 5f,
-              android.graphics.Paint().apply {
-                color = android.graphics.Color.LTGRAY
-                textSize = 60f
-                textAlign = android.graphics.Paint.Align.CENTER
-                isFakeBoldText = true
-              }
-            )
-
-            // Рисуем текущие часовые цифры (крупно)
-            drawText(
-              currentHourText,
-              currentHourPosition.x,
-              currentHourPosition.y,
-              android.graphics.Paint().apply {
-                color = android.graphics.Color.LTGRAY
-                textSize = 55f
-                textAlign = android.graphics.Paint.Align.CENTER
-                isFakeBoldText = true
-              })
-
-            // Рисуем противоположные часовые цифры (мелко)
-            drawText(
-              oppositeHourText,
-              oppositeHourPosition.x,
-              oppositeHourPosition.y,
-              android.graphics.Paint().apply {
-                color = android.graphics.Color.GRAY
-                textSize = 40f
-                textAlign = android.graphics.Paint.Align.CENTER
-              }
-            )
-          }
+          drawClockText(minuteText, textPosition, android.graphics.Color.LTGRAY, 60f, true)
+          drawClockText(
+            currentHourText,
+            currentHourPosition,
+            android.graphics.Color.LTGRAY,
+            55f,
+            true
+          )
+          drawClockText(oppositeHourText, oppositeHourPosition, android.graphics.Color.GRAY, 40f)
         }
 
         // Рисуем минутную стрелку
