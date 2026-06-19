@@ -32,6 +32,7 @@ import dev.analog.HandShape
 import dev.analog.NumeralStyle
 import dev.analog.NumeralTextStyle
 import dev.analog.TimePickerConfig
+import dev.analog.TimePickerThemes
 import java.time.LocalTime
 
 class MainActivity : ComponentActivity() {
@@ -47,12 +48,20 @@ class MainActivity : ComponentActivity() {
         }
         var imageHands by remember { mutableStateOf(false) }
         var numeralFont by remember { mutableStateOf<FontFamily?>(null) }
+        var theme by remember { mutableStateOf<TimePickerConfig?>(null) }
 
         val fontOptions = listOf(
           "Обычный" to null,
           "Serif" to FontFamily.Serif,
           "Моно" to FontFamily.Monospace,
           "Курсив" to FontFamily.Cursive
+        )
+        val themeOptions = listOf<Pair<String, TimePickerConfig?>>(
+          "Ручные" to null,
+          "Classic" to TimePickerThemes.Classic,
+          "Dark" to TimePickerThemes.Dark,
+          "Minimal" to TimePickerThemes.Minimal,
+          "Roman" to TimePickerThemes.Roman
         )
 
         val handPainter = painterResource(R.drawable.hand_pointer)
@@ -90,6 +99,17 @@ class MainActivity : ComponentActivity() {
           "Нет" to NumeralStyle.None
         )
 
+        // Ручная конфигурация из переключателей; тема (если выбрана) перекрывает её.
+        val manualConfig = TimePickerConfig(
+          radius = 120.dp,
+          numeralStyle = numeralStyle,
+          background = background,
+          hourHand = hourHand,
+          minuteHand = minuteHand,
+          textStyle = NumeralTextStyle(fontFamily = numeralFont)
+        )
+        val effectiveConfig = theme?.copy(radius = 120.dp) ?: manualConfig
+
         Column(
           modifier = Modifier
             .fillMaxSize()
@@ -103,18 +123,21 @@ class MainActivity : ComponentActivity() {
           AnalogTimePicker(
             time = time,
             onTimeChange = { time = it },
-            config = TimePickerConfig(
-              radius = 120.dp,
-              numeralStyle = numeralStyle,
-              background = background,
-              hourHand = hourHand,
-              minuteHand = minuteHand,
-              textStyle = NumeralTextStyle(fontFamily = numeralFont)
-            ),
+            config = effectiveConfig,
             snapLabel = "5 минут"
           )
 
           Spacer(Modifier.height(16.dp))
+
+          // Переключатель темы (перекрывает ручные настройки)
+          FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally)
+          ) {
+            themeOptions.forEach { (label, t) ->
+              Button(onClick = { theme = t }) { Text(label) }
+            }
+          }
 
           // Переключатель стиля цифр (для демонстрации)
           FlowRow(
