@@ -40,12 +40,12 @@ dependencyResolutionManagement {
 
 // build.gradle.kts модуля
 dependencies {
-  implementation("com.github.titeha.AnalogPickerPlayground:analogtimepicker:v0.1.0")
+  implementation("com.github.titeha.AnalogPickerPlayground:analogtimepicker:0.1.0")
 }
 ```
 
 Чтобы версия появилась на JitPack: запушьте тег в GitHub
-(`git tag v0.1.0 && git push origin v0.1.0`) и откройте сборку на jitpack.io.
+(`git tag 0.1.0 && git push origin 0.1.0`) и откройте сборку на jitpack.io.
 
 ## Использование
 

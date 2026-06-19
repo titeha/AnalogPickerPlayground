@@ -50,14 +50,14 @@ android {
   }
 }
 
-// Публикация AAR. JitPack переопределит groupId/version координатами тега
-// (com.github.titeha.AnalogPickerPlayground:analogtimepicker:<тег>).
+// Публикация AAR. Для многомодульного репозитория JitPack ждёт группу
+// com.github.<user>.<repo>, поэтому координата: com.github.titeha.AnalogPickerPlayground:analogtimepicker:<версия>.
 afterEvaluate {
   publishing {
     publications {
       register<MavenPublication>("release") {
         from(components["release"])
-        groupId = "com.github.titeha"
+        groupId = "com.github.titeha.AnalogPickerPlayground"
         artifactId = "analogtimepicker"
         version = "0.1.0"
       }
