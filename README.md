@@ -27,7 +27,8 @@
 
 ## Подключение
 
-> Публикация в Maven ещё настраивается (см. план). После публикации через JitPack:
+Через [JitPack](https://jitpack.io): добавьте репозиторий и зависимость, указав git-тег
+как версию (например, `v0.1.0`).
 
 ```kotlin
 // settings.gradle.kts
@@ -39,9 +40,12 @@ dependencyResolutionManagement {
 
 // build.gradle.kts модуля
 dependencies {
-  implementation("com.github.titeha.AnalogPickerPlayground:analogtimepicker:<тег>")
+  implementation("com.github.titeha.AnalogPickerPlayground:analogtimepicker:v0.1.0")
 }
 ```
+
+Чтобы версия появилась на JitPack: запушьте тег в GitHub
+(`git tag v0.1.0 && git push origin v0.1.0`) и откройте сборку на jitpack.io.
 
 ## Использование
 

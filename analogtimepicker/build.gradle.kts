@@ -2,6 +2,7 @@ plugins {
   alias(libs.plugins.android.library)
   alias(libs.plugins.kotlin.android)
   alias(libs.plugins.compose.compiler)
+  id("maven-publish")
 }
 
 android {
@@ -38,6 +39,28 @@ android {
         getDefaultProguardFile("proguard-android-optimize.txt"),
         "proguard-rules.pro"
       )
+    }
+  }
+
+  // Публикуемый вариант (для JitPack/maven-publish) + исходники в артефакте.
+  publishing {
+    singleVariant("release") {
+      withSourcesJar()
+    }
+  }
+}
+
+// Публикация AAR. JitPack переопределит groupId/version координатами тега
+// (com.github.titeha.AnalogPickerPlayground:analogtimepicker:<тег>).
+afterEvaluate {
+  publishing {
+    publications {
+      register<MavenPublication>("release") {
+        from(components["release"])
+        groupId = "com.github.titeha"
+        artifactId = "analogtimepicker"
+        version = "0.1.0"
+      }
     }
   }
 }
