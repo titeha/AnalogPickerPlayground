@@ -5,7 +5,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 data class TimePickerColors(
-  val dialBackground: Color = Color.Gray.copy(alpha = 0.12f),
   val dialStroke: Color = Color.Gray.copy(alpha = 0.32f),
   val hourHandColor: Color = Color(0xFFFFFF00),
   val hourHandColorPM: Color = Color(0xFFFF8000),
@@ -36,6 +35,7 @@ data class NumeralTextStyle(
 
 data class TimePickerConfig(
   val colors: TimePickerColors = TimePickerColors(),
+  val background: DialBackground = DialBackground.Solid(Color.Gray.copy(alpha = 0.12f)),
   val handStyle: HandStyle = HandStyle(),
   val textStyle: NumeralTextStyle = NumeralTextStyle(),
   val numeralStyle: NumeralStyle = NumeralStyle.Arabic,

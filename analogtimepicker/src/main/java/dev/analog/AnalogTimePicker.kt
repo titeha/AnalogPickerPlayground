@@ -24,11 +24,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextMeasurer
@@ -240,8 +244,23 @@ fun AnalogTimePicker(
         val r = dialRadiusPx(size.width, size.height)
         val isPM = minutes >= 720
 
-        // Рисуем циферблат
-        drawCircle(color = colors.dialBackground, radius = r)
+        // Фон циферблата
+        when (val bg = config.background) {
+          DialBackground.None -> Unit
+          is DialBackground.Solid -> drawCircle(color = bg.color, radius = r)
+          is DialBackground.Gradient -> drawCircle(brush = bg.brush, radius = r)
+          is DialBackground.Image -> {
+            val d = r * 2
+            clipPath(Path().apply {
+              addOval(Rect(center.x - r, center.y - r, center.x + r, center.y + r))
+            }) {
+              translate(center.x - r, center.y - r) {
+                with(bg.painter) { draw(Size(d, d), alpha = bg.alpha) }
+              }
+            }
+          }
+        }
+        // Обводка циферблата
         drawCircle(
           color = colors.dialStroke,
           radius = r,
