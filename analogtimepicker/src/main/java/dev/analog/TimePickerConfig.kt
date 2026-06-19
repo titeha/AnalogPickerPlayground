@@ -5,6 +5,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
+/** Цвета элементов циферблата (фон задаётся отдельно через [DialBackground]). */
 data class TimePickerColors(
   val dialStroke: Color = Color.Gray.copy(alpha = 0.32f),
   val centerDotColor: Color = Color.Black.copy(alpha = 0.6f),
@@ -17,6 +18,7 @@ data class TimePickerColors(
   val oppositeHourNumbersColor: Color = Color.Gray
 )
 
+/** Размеры (в px канвы) и шрифт цифр на циферблате. */
 data class NumeralTextStyle(
   val minuteTextSize: Float = 60f,
   val currentHourTextSize: Float = 55f,
@@ -25,6 +27,10 @@ data class NumeralTextStyle(
   val fontFamily: FontFamily? = null
 )
 
+/**
+ * Полная конфигурация оформления циферблата: цвета, фон, стрелки, цифры и размер.
+ * Готовые пресеты — в [TimePickerThemes]; любой можно донастроить через .copy(...).
+ */
 data class TimePickerConfig(
   val colors: TimePickerColors = TimePickerColors(),
   val background: DialBackground = DialBackground.Solid(Color.Gray.copy(alpha = 0.12f)),
