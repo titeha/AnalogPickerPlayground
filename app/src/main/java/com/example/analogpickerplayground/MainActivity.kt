@@ -99,7 +99,8 @@ class MainActivity : ComponentActivity() {
               background = background,
               hourHand = hourHand,
               minuteHand = minuteHand
-            )
+            ),
+            snapLabel = "5 минут"
           )
 
           Spacer(Modifier.height(16.dp))
@@ -152,7 +153,8 @@ class MainActivity : ComponentActivity() {
             onDismiss = { showDialog = false },
             title = "Установите время",
             confirmButtonText = "Выбрать",
-            dismissButtonText = "Отмена"
+            dismissButtonText = "Отмена",
+            snapLabel = "5 минут"
           )
         }
       }

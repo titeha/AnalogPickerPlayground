@@ -129,12 +129,18 @@ private fun DrawScope.drawHand(
   }
 }
 
+/**
+ * Чистый циферблат: круг/фон, деления, цифры, стрелки и перетаскивание.
+ * Без текста времени и переключателей — это переиспользуемое ядро.
+ * Привязка к 5 минутам управляется параметром [snapTo5Minutes].
+ */
 @Composable
-fun AnalogTimePicker(
-  modifier: Modifier = Modifier,
-  time: LocalTime = LocalTime.now(),
+fun AnalogClockDial(
+  time: LocalTime,
   onTimeChange: (LocalTime) -> Unit,
-  config: TimePickerConfig = TimePickerConfig()
+  modifier: Modifier = Modifier,
+  config: TimePickerConfig = TimePickerConfig(),
+  snapTo5Minutes: Boolean = true
 ) {
   val colors = config.colors
   val textStyle = config.textStyle
@@ -145,7 +151,6 @@ fun AnalogTimePicker(
     mutableIntStateOf(time.hour * 60 + time.minute)
   }
 
-  var snapEnabled by remember { mutableStateOf(config.snapTo5Minutes) }
   var selectedHand by remember { mutableStateOf<Hand?>(null) }
 
   val updateTime: (Int) -> Unit = { newMinutes ->
@@ -159,7 +164,7 @@ fun AnalogTimePicker(
     ClockMath.clockAngleDegrees(position.x - size.width / 2f, position.y - size.height / 2f)
 
   fun minuteAt(position: Offset, size: Size): Int =
-    ClockMath.minuteFromAngle(angleAt(position, size), snapEnabled)
+    ClockMath.minuteFromAngle(angleAt(position, size), snapTo5Minutes)
 
   fun hour24At(position: Offset, size: Size): Int {
     val hour12 = ClockMath.hour12FromAngle(angleAt(position, size))
@@ -200,48 +205,33 @@ fun AnalogTimePicker(
     }
   }
 
-  val h = minutes / 60
   val m = minutes % 60
 
-  Column(
-    modifier = modifier,
-    horizontalAlignment = Alignment.CenterHorizontally
-  ) {
-    if (config.showTimeText) {
-      Text(
-        text = "%02d:%02d".format(h, m),
-        style = MaterialTheme.typography.headlineSmall,
-        fontWeight = FontWeight.Bold,
-        color = colors.timeTextColor
+  val primary = MaterialTheme.colorScheme.primary
+  val textMeasurer = rememberTextMeasurer()
+
+  // Внешние минутные цифры рисуются на (r + numbersGap). Резервируем под них место
+  // (зазор + половина высоты цифры + запас), иначе их режет край Canvas.
+  // Один и тот же радиус используется при отрисовке и при выборе стрелки.
+  val density = LocalDensity.current
+  val numbersGap = 35f
+  val minuteNumberHeightPx = remember(textStyle.minuteTextSize, density, textMeasurer) {
+    textMeasurer.measure(
+      "60",
+      TextStyle(
+        fontSize = with(density) { textStyle.minuteTextSize.toSp() },
+        fontWeight = FontWeight.Bold
       )
-      Spacer(Modifier.height(12.dp))
-    }
+    ).size.height
+  }
+  fun dialRadiusPx(w: Float, h: Float): Float =
+    min(w, h) / 2f - (numbersGap + minuteNumberHeightPx / 2f + 4f)
 
-    val primary = MaterialTheme.colorScheme.primary
-    val textMeasurer = rememberTextMeasurer()
-
-    // Внешние минутные цифры рисуются на (r + numbersGap). Резервируем под них место
-    // (зазор + половина высоты цифры + запас), иначе их режет край Canvas.
-    // Один и тот же радиус используется при отрисовке и при выборе стрелки.
-    val density = LocalDensity.current
-    val numbersGap = 35f
-    val minuteNumberHeightPx = remember(textStyle.minuteTextSize, density, textMeasurer) {
-      textMeasurer.measure(
-        "60",
-        TextStyle(
-          fontSize = with(density) { textStyle.minuteTextSize.toSp() },
-          fontWeight = FontWeight.Bold
-        )
-      ).size.height
-    }
-    fun dialRadiusPx(w: Float, h: Float): Float =
-      min(w, h) / 2f - (numbersGap + minuteNumberHeightPx / 2f + 4f)
-
-    Box(modifier = Modifier.size(config.radius * 2)) {
+  Box(modifier = modifier.size(config.radius * 2)) {
       Canvas(
         modifier = Modifier
           .fillMaxSize()
-          .pointerInput(updateTime, minutes, snapEnabled) {
+          .pointerInput(updateTime, minutes, snapTo5Minutes) {
             val canvasSize = Size(size.width.toFloat(), size.height.toFloat())
 
             awaitPointerEventScope {
@@ -373,26 +363,62 @@ fun AnalogTimePicker(
         drawCircle(color = colors.centerDotColor, radius = 5f, center = center)
       }
     }
+}
 
-    if (config.showSnapSwitch) {
+/**
+ * Удобная обёртка над [AnalogClockDial]: добавляет опциональный текст времени
+ * сверху и переключатель привязки к 5 минутам снизу.
+ *
+ * @param snapLabel подпись переключателя (для локализации задаётся потребителем).
+ */
+@Composable
+fun AnalogTimePicker(
+  time: LocalTime = LocalTime.now(),
+  onTimeChange: (LocalTime) -> Unit,
+  modifier: Modifier = Modifier,
+  config: TimePickerConfig = TimePickerConfig(),
+  showTimeText: Boolean = true,
+  showSnapSwitch: Boolean = true,
+  snapTo5Minutes: Boolean = true,
+  snapLabel: String = "5 min"
+) {
+  var snapEnabled by remember { mutableStateOf(snapTo5Minutes) }
+
+  Column(
+    modifier = modifier,
+    horizontalAlignment = Alignment.CenterHorizontally
+  ) {
+    if (showTimeText) {
+      Text(
+        text = "%02d:%02d".format(time.hour, time.minute),
+        style = MaterialTheme.typography.headlineSmall,
+        fontWeight = FontWeight.Bold,
+        color = config.colors.timeTextColor
+      )
+      Spacer(Modifier.height(12.dp))
+    }
+
+    AnalogClockDial(
+      time = time,
+      onTimeChange = onTimeChange,
+      config = config,
+      snapTo5Minutes = snapEnabled
+    )
+
+    if (showSnapSwitch) {
       Spacer(Modifier.height(8.dp))
-
       Row(verticalAlignment = Alignment.CenterVertically) {
-        Text("5 минут", color = colors.switchTextColor)
+        Text(snapLabel, color = config.colors.switchTextColor)
         Spacer(Modifier.width(8.dp))
         Switch(
           checked = snapEnabled,
-          onCheckedChange = { isChecked ->
-          snapEnabled = isChecked
-          // При переключении сразу применяем новое правило к текущему времени
-          val currentMinute = minutes % 60
-          val adjustedMinute = if (isChecked) {
-            ClockMath.floorTo5(currentMinute)  // Округляем до ближайших 5 минут
-          } else {
-            currentMinute  // Оставляем как есть
-          }
-          val totalMinutes = (minutes / 60) * 60 + adjustedMinute
-          updateTime(totalMinutes)
+          onCheckedChange = { checked ->
+            snapEnabled = checked
+            // При включении привязки сразу округляем текущую минуту
+            if (checked) {
+              val rounded = ClockMath.floorTo5(time.minute)
+              if (rounded != time.minute) onTimeChange(time.withMinute(rounded))
+            }
           }
         )
       }
@@ -406,10 +432,11 @@ fun AnalogTimePickerDialog(
   initialTime: LocalTime = LocalTime.now(),
   onTimeSelected: (LocalTime) -> Unit,
   onDismiss: () -> Unit,
-  title: String = "Выберите время",
-  confirmButtonText: String = "Ok",
-  dismissButtonText: String = "Отмена",
-  config: TimePickerConfig = TimePickerConfig(radius = 200.dp)
+  title: String = "Select time",
+  confirmButtonText: String = "OK",
+  dismissButtonText: String = "Cancel",
+  config: TimePickerConfig = TimePickerConfig(radius = 200.dp),
+  snapLabel: String = "5 min"
 ) {
   var currentTime by remember { mutableStateOf(initialTime) }
   val typography = MaterialTheme.typography
@@ -427,7 +454,8 @@ fun AnalogTimePickerDialog(
       AnalogTimePicker(
         time = currentTime,
         onTimeChange = { newTime -> currentTime = newTime },
-        config = config
+        config = config,
+        snapLabel = snapLabel
       )
     },
     confirmButton = {
