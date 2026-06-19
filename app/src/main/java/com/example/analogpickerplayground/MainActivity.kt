@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import dev.analog.AnalogTimePicker
 import dev.analog.AnalogTimePickerDialog
 import dev.analog.DialBackground
+import dev.analog.HandShape
 import dev.analog.NumeralStyle
 import dev.analog.TimePickerConfig
 import java.time.LocalTime
@@ -41,6 +42,22 @@ class MainActivity : ComponentActivity() {
         var numeralStyle by remember { mutableStateOf<NumeralStyle>(NumeralStyle.Arabic) }
         var background by remember {
           mutableStateOf<DialBackground>(DialBackground.Solid(Color.Gray.copy(alpha = 0.12f)))
+        }
+        var imageHands by remember { mutableStateOf(false) }
+
+        val handPainter = painterResource(R.drawable.hand_pointer)
+        val hourHand = if (imageHands) {
+          HandShape.Image(handPainter, widthPx = 40f, lengthFraction = 0.5f)
+        } else {
+          HandShape.Line(
+            color = Color(0xFFFFFF00), colorPm = Color(0xFFFF8000),
+            widthPx = 14f, lengthFraction = 0.5f
+          )
+        }
+        val minuteHand = if (imageHands) {
+          HandShape.Image(handPainter, widthPx = 28f, lengthFraction = 0.86f)
+        } else {
+          HandShape.Line(widthPx = 8f, lengthFraction = 0.86f)
         }
 
         val bgOptions = listOf(
@@ -79,7 +96,9 @@ class MainActivity : ComponentActivity() {
             config = TimePickerConfig(
               radius = 120.dp,
               numeralStyle = numeralStyle,
-              background = background
+              background = background,
+              hourHand = hourHand,
+              minuteHand = minuteHand
             )
           )
 
@@ -103,6 +122,15 @@ class MainActivity : ComponentActivity() {
             bgOptions.forEach { (label, bg) ->
               Button(onClick = { background = bg }) { Text(label) }
             }
+          }
+
+          // Переключатель типа стрелок (для демонстрации)
+          FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally)
+          ) {
+            Button(onClick = { imageHands = false }) { Text("Стрелки: линии") }
+            Button(onClick = { imageHands = true }) { Text("Стрелки: картинки") }
           }
 
           Spacer(Modifier.height(16.dp))

@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -94,6 +95,40 @@ private fun DrawScope.drawNumeral(
   }
 }
 
+/**
+ * Рисует стрелку под углом [clockAngleDeg] (0° — вверх/на 12, рост по часовой).
+ * [fallbackColor] используется для линии, если у неё не задан цвет (минутная → primary).
+ */
+private fun DrawScope.drawHand(
+  shape: HandShape,
+  clockAngleDeg: Float,
+  center: Offset,
+  dialR: Float,
+  isPM: Boolean,
+  fallbackColor: Color
+) {
+  val length = dialR * shape.lengthFraction
+  when (shape) {
+    is HandShape.Line -> {
+      val rad = Math.toRadians((clockAngleDeg - 90f).toDouble())
+      val end = Offset(
+        center.x + cos(rad).toFloat() * length,
+        center.y + sin(rad).toFloat() * length
+      )
+      val color = (if (isPM) shape.colorPm else null) ?: shape.color ?: fallbackColor
+      drawLine(color, center, end, strokeWidth = shape.widthPx, cap = shape.cap)
+    }
+
+    is HandShape.Image -> {
+      rotate(degrees = clockAngleDeg, pivot = center) {
+        translate(left = center.x - shape.widthPx / 2f, top = center.y - length) {
+          with(shape.painter) { draw(Size(shape.widthPx, length)) }
+        }
+      }
+    }
+  }
+}
+
 @Composable
 fun AnalogTimePicker(
   modifier: Modifier = Modifier,
@@ -102,8 +137,9 @@ fun AnalogTimePicker(
   config: TimePickerConfig = TimePickerConfig()
 ) {
   val colors = config.colors
-  val handStyle = config.handStyle
   val textStyle = config.textStyle
+  val minuteHandLength = config.minuteHand.lengthFraction
+  val hourHandLength = config.hourHand.lengthFraction
 
   var minutes by remember(time) {
     mutableIntStateOf(time.hour * 60 + time.minute)
@@ -139,12 +175,12 @@ fun AnalogTimePicker(
     val minuteRad = Math.toRadians((mm * 6 - 90).toDouble())
     val hourRad = Math.toRadians(((hh % 12) * 30 - 90).toDouble())
     val minuteTip = Offset(
-      center.x + cos(minuteRad).toFloat() * dialR * handStyle.minuteHandLength,
-      center.y + sin(minuteRad).toFloat() * dialR * handStyle.minuteHandLength
+      center.x + cos(minuteRad).toFloat() * dialR * minuteHandLength,
+      center.y + sin(minuteRad).toFloat() * dialR * minuteHandLength
     )
     val hourTip = Offset(
-      center.x + cos(hourRad).toFloat() * dialR * handStyle.hourHandLength,
-      center.y + sin(hourRad).toFloat() * dialR * handStyle.hourHandLength
+      center.x + cos(hourRad).toFloat() * dialR * hourHandLength,
+      center.y + sin(hourRad).toFloat() * dialR * hourHandLength
     )
     val dM = ClockMath.distanceToSegment(
       position.x, position.y, center.x, center.y, minuteTip.x, minuteTip.y
@@ -157,7 +193,7 @@ fun AnalogTimePicker(
       // линии почти совпали (стрелки наложились) — решаем по радиусу:
       // дальше кончика часовой это уже зона минутной
       abs(dM - dH) <= 2f ->
-        if (touchDist > dialR * handStyle.hourHandLength) Hand.Minute else Hand.Hour
+        if (touchDist > dialR * hourHandLength) Hand.Minute else Hand.Hour
 
       dM < dH -> Hand.Minute
       else -> Hand.Hour
@@ -181,7 +217,7 @@ fun AnalogTimePicker(
       Spacer(Modifier.height(12.dp))
     }
 
-    val minuteHandColor = colors.minuteHandColor ?: MaterialTheme.colorScheme.primary
+    val primary = MaterialTheme.colorScheme.primary
     val textMeasurer = rememberTextMeasurer()
 
     // Внешние минутные цифры рисуются на (r + numbersGap). Резервируем под них место
@@ -327,35 +363,11 @@ fun AnalogTimePicker(
           )
         }
 
-        // Рисуем минутную стрелку
-        val minuteAngle = Math.toRadians((m * 6 - 90).toDouble())
-        val minuteEnd = Offset(
-          center.x + cos(minuteAngle).toFloat() * (r * handStyle.minuteHandLength),
-          center.y + sin(minuteAngle).toFloat() * (r * handStyle.minuteHandLength)
-        )
-        drawLine(
-          color = minuteHandColor,
-          start = center,
-          end = minuteEnd,
-          strokeWidth = handStyle.minuteHandWidth,
-          cap = StrokeCap.Round
-        )
+        // Минутная стрелка (угол по минутам)
+        drawHand(config.minuteHand, m * 6f, center, r, isPM, primary)
 
-        // Рисуем часовую стрелку
-        val currentHour = minutes / 60
-        val hourAngle = Math.toRadians(((currentHour % 12) * 30 - 90).toDouble())
-        val hourEnd = Offset(
-          center.x + cos(hourAngle).toFloat() * (r * handStyle.hourHandLength),
-          center.y + sin(hourAngle).toFloat() * (r * handStyle.hourHandLength)
-        )
-
-        drawLine(
-          color = if (isPM) colors.hourHandColorPM else colors.hourHandColor,
-          start = center,
-          end = hourEnd,
-          strokeWidth = handStyle.hourHandWidth,
-          cap = StrokeCap.Round
-        )
+        // Часовая стрелка (угол по часам, без минутной доли — как было)
+        drawHand(config.hourHand, (minutes / 60 % 12) * 30f, center, r, isPM, primary)
 
         // Рисуем центр
         drawCircle(color = colors.centerDotColor, radius = 5f, center = center)
