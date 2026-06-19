@@ -70,6 +70,26 @@ private fun DrawScope.drawClockText(
   )
 }
 
+/** Рисует метку циферблата согласно выбранной стратегии: текст, точку или ничего. */
+private fun DrawScope.drawNumeral(
+  textMeasurer: TextMeasurer,
+  cell: NumeralCell,
+  center: Offset,
+  color: Color,
+  fontSizePx: Float,
+  fontWeight: FontWeight = FontWeight.Normal
+) {
+  when (cell) {
+    is NumeralCell.Text ->
+      drawClockText(textMeasurer, cell.value, center, color, fontSizePx, fontWeight)
+
+    NumeralCell.Dot ->
+      drawCircle(color = color, radius = fontSizePx * 0.12f, center = center)
+
+    NumeralCell.Empty -> Unit
+  }
+}
+
 @Composable
 fun AnalogTimePicker(
   modifier: Modifier = Modifier,
@@ -249,10 +269,8 @@ fun AnalogTimePicker(
         for (i in 0 until 12) {
           val angle = Math.toRadians((i * 30 - 90).toDouble())
 
-          // 1. Минутные цифры (снаружи)
-          val minuteValue = i * 5
-          val minuteText = if (minuteValue == 0) "60" else minuteValue.toString()
-          // Позиция цифры (немного дальше от центра чем деления)
+          // 1. Минутные цифры (снаружи). На позиции 0 это «60».
+          val minuteLabelValue = if (i == 0) 60 else i * 5
           val textRadius = r + numbersGap
           val textPosition = Offset(
             center.x + cos(angle).toFloat() * textRadius,
@@ -261,7 +279,6 @@ fun AnalogTimePicker(
 
           // 2. Часовые цифры текущей половины (средний круг)
           val currentHourValue = if (isPM) i + 12 else i
-          val currentHourText = if (currentHourValue == 24) "0" else currentHourValue.toString()
           val currentHourRadius = r - 125f
           val currentHourPosition = Offset(
             center.x + cos(angle).toFloat() * currentHourRadius,
@@ -270,24 +287,23 @@ fun AnalogTimePicker(
 
           // 3. Часовые цифры противоположной половины (внутри)
           val oppositeHourValue = if (!isPM) i + 12 else i
-          val oppositeHourText =
-            if (oppositeHourValue == 24) "0" else oppositeHourValue.toString()
           val oppositeHourRadius = r - 190f
           val oppositeHourPosition = Offset(
             center.x + cos(angle).toFloat() * oppositeHourRadius,
             center.y + sin(angle).toFloat() * oppositeHourRadius
           )
 
-          drawClockText(
-            textMeasurer, minuteText, textPosition,
+          val numeralStyle = config.numeralStyle
+          drawNumeral(
+            textMeasurer, numeralStyle.cellFor(minuteLabelValue, i), textPosition,
             colors.minuteNumbersColor, textStyle.minuteTextSize, FontWeight.Bold
           )
-          drawClockText(
-            textMeasurer, currentHourText, currentHourPosition,
+          drawNumeral(
+            textMeasurer, numeralStyle.cellFor(currentHourValue, i), currentHourPosition,
             colors.currentHourNumbersColor, textStyle.currentHourTextSize, FontWeight.Bold
           )
-          drawClockText(
-            textMeasurer, oppositeHourText, oppositeHourPosition,
+          drawNumeral(
+            textMeasurer, numeralStyle.cellFor(oppositeHourValue, i), oppositeHourPosition,
             colors.oppositeHourNumbersColor, textStyle.oppositeHourTextSize
           )
         }

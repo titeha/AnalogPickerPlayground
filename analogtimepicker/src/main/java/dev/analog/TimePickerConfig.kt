@@ -38,6 +38,7 @@ data class TimePickerConfig(
   val colors: TimePickerColors = TimePickerColors(),
   val handStyle: HandStyle = HandStyle(),
   val textStyle: NumeralTextStyle = NumeralTextStyle(),
+  val numeralStyle: NumeralStyle = NumeralStyle.Arabic,
   val showTimeText: Boolean = true,
   val showSnapSwitch: Boolean = true,
   val snapTo5Minutes: Boolean = true,
