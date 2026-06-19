@@ -23,12 +23,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import dev.analog.AnalogTimePicker
 import dev.analog.AnalogTimePickerDialog
 import dev.analog.DialBackground
 import dev.analog.HandShape
 import dev.analog.NumeralStyle
+import dev.analog.NumeralTextStyle
 import dev.analog.TimePickerConfig
 import java.time.LocalTime
 
@@ -44,6 +46,14 @@ class MainActivity : ComponentActivity() {
           mutableStateOf<DialBackground>(DialBackground.Solid(Color.Gray.copy(alpha = 0.12f)))
         }
         var imageHands by remember { mutableStateOf(false) }
+        var numeralFont by remember { mutableStateOf<FontFamily?>(null) }
+
+        val fontOptions = listOf(
+          "Обычный" to null,
+          "Serif" to FontFamily.Serif,
+          "Моно" to FontFamily.Monospace,
+          "Курсив" to FontFamily.Cursive
+        )
 
         val handPainter = painterResource(R.drawable.hand_pointer)
         val hourHand = if (imageHands) {
@@ -98,7 +108,8 @@ class MainActivity : ComponentActivity() {
               numeralStyle = numeralStyle,
               background = background,
               hourHand = hourHand,
-              minuteHand = minuteHand
+              minuteHand = minuteHand,
+              textStyle = NumeralTextStyle(fontFamily = numeralFont)
             ),
             snapLabel = "5 минут"
           )
@@ -132,6 +143,16 @@ class MainActivity : ComponentActivity() {
           ) {
             Button(onClick = { imageHands = false }) { Text("Стрелки: линии") }
             Button(onClick = { imageHands = true }) { Text("Стрелки: картинки") }
+          }
+
+          // Переключатель шрифта цифр (для демонстрации)
+          FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally)
+          ) {
+            fontOptions.forEach { (label, font) ->
+              Button(onClick = { numeralFont = font }) { Text(label) }
+            }
           }
 
           Spacer(Modifier.height(16.dp))

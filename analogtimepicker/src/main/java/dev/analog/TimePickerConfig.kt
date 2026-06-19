@@ -1,6 +1,7 @@
 package dev.analog
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -19,7 +20,9 @@ data class TimePickerColors(
 data class NumeralTextStyle(
   val minuteTextSize: Float = 60f,
   val currentHourTextSize: Float = 55f,
-  val oppositeHourTextSize: Float = 40f
+  val oppositeHourTextSize: Float = 40f,
+  /** Шрифт цифр; null — шрифт по умолчанию. */
+  val fontFamily: FontFamily? = null
 )
 
 data class TimePickerConfig(

@@ -39,6 +39,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
@@ -60,11 +61,17 @@ private fun DrawScope.drawClockText(
   center: Offset,
   color: Color,
   fontSizePx: Float,
-  fontWeight: FontWeight = FontWeight.Normal
+  fontWeight: FontWeight = FontWeight.Normal,
+  fontFamily: FontFamily? = null
 ) {
   val layout = textMeasurer.measure(
     text = text,
-    style = TextStyle(color = color, fontSize = fontSizePx.toSp(), fontWeight = fontWeight)
+    style = TextStyle(
+      color = color,
+      fontSize = fontSizePx.toSp(),
+      fontWeight = fontWeight,
+      fontFamily = fontFamily
+    )
   )
   drawText(
     textLayoutResult = layout,
@@ -82,11 +89,12 @@ private fun DrawScope.drawNumeral(
   center: Offset,
   color: Color,
   fontSizePx: Float,
-  fontWeight: FontWeight = FontWeight.Normal
+  fontWeight: FontWeight = FontWeight.Normal,
+  fontFamily: FontFamily? = null
 ) {
   when (cell) {
     is NumeralCell.Text ->
-      drawClockText(textMeasurer, cell.value, center, color, fontSizePx, fontWeight)
+      drawClockText(textMeasurer, cell.value, center, color, fontSizePx, fontWeight, fontFamily)
 
     NumeralCell.Dot ->
       drawCircle(color = color, radius = fontSizePx * 0.12f, center = center)
@@ -220,7 +228,8 @@ fun AnalogClockDial(
       "60",
       TextStyle(
         fontSize = with(density) { textStyle.minuteTextSize.toSp() },
-        fontWeight = FontWeight.Bold
+        fontWeight = FontWeight.Bold,
+        fontFamily = textStyle.fontFamily
       )
     ).size.height
   }
@@ -341,15 +350,18 @@ fun AnalogClockDial(
           val numeralStyle = config.numeralStyle
           drawNumeral(
             textMeasurer, numeralStyle.cellFor(minuteLabelValue, i), textPosition,
-            colors.minuteNumbersColor, textStyle.minuteTextSize, FontWeight.Bold
+            colors.minuteNumbersColor, textStyle.minuteTextSize, FontWeight.Bold,
+            textStyle.fontFamily
           )
           drawNumeral(
             textMeasurer, numeralStyle.cellFor(currentHourValue, i), currentHourPosition,
-            colors.currentHourNumbersColor, textStyle.currentHourTextSize, FontWeight.Bold
+            colors.currentHourNumbersColor, textStyle.currentHourTextSize, FontWeight.Bold,
+            textStyle.fontFamily
           )
           drawNumeral(
             textMeasurer, numeralStyle.cellFor(oppositeHourValue, i), oppositeHourPosition,
-            colors.oppositeHourNumbersColor, textStyle.oppositeHourTextSize
+            colors.oppositeHourNumbersColor, textStyle.oppositeHourTextSize,
+            fontFamily = textStyle.fontFamily
           )
         }
 
