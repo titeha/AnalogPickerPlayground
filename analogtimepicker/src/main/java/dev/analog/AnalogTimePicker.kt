@@ -29,9 +29,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import java.time.LocalTime
@@ -41,23 +44,29 @@ import kotlin.math.sin
 
 private enum class Hand { Minute, Hour }
 
+/**
+ * Рисует текст, отцентрованный по точке [center].
+ * [fontSizePx] — размер в пикселях canvas (через toSp() не зависит от плотности экрана).
+ */
 private fun DrawScope.drawClockText(
+  textMeasurer: TextMeasurer,
   text: String,
-  position: Offset,
-  color: Int,
-  textSize: Float,
-  isBold: Boolean = false
+  center: Offset,
+  color: Color,
+  fontSizePx: Float,
+  fontWeight: FontWeight = FontWeight.Normal
 ) {
-  drawContext.canvas.nativeCanvas.drawText(
-    text,
-    position.x,
-    position.y,
-    android.graphics.Paint().apply {
-      this.color = color
-      this.textSize = textSize
-      textAlign = android.graphics.Paint.Align.CENTER
-      isFakeBoldText = isBold
-    })
+  val layout = textMeasurer.measure(
+    text = text,
+    style = TextStyle(color = color, fontSize = fontSizePx.toSp(), fontWeight = fontWeight)
+  )
+  drawText(
+    textLayoutResult = layout,
+    topLeft = Offset(
+      center.x - layout.size.width / 2f,
+      center.y - layout.size.height / 2f
+    )
+  )
 }
 
 @Composable
@@ -115,6 +124,7 @@ fun AnalogTimePicker(
     Spacer(Modifier.height(12.dp))
 
     val primary = MaterialTheme.colorScheme.primary
+    val textMeasurer = rememberTextMeasurer()
 
     Box(modifier = Modifier.size(radius * 2)) {
       Canvas(
@@ -217,15 +227,15 @@ fun AnalogTimePicker(
             center.y + sin(angle).toFloat() * oppositeHourRadius
           )
 
-          drawClockText(minuteText, textPosition, android.graphics.Color.LTGRAY, 60f, true)
           drawClockText(
-            currentHourText,
-            currentHourPosition,
-            android.graphics.Color.LTGRAY,
-            55f,
-            true
+            textMeasurer, minuteText, textPosition, Color.LightGray, 60f, FontWeight.Bold
           )
-          drawClockText(oppositeHourText, oppositeHourPosition, android.graphics.Color.GRAY, 40f)
+          drawClockText(
+            textMeasurer, currentHourText, currentHourPosition, Color.LightGray, 55f, FontWeight.Bold
+          )
+          drawClockText(
+            textMeasurer, oppositeHourText, oppositeHourPosition, Color.Gray, 40f
+          )
         }
 
         // Рисуем минутную стрелку

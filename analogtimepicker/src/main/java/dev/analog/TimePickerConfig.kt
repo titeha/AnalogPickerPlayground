@@ -1,7 +1,6 @@
 package dev.analog
 
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -28,7 +27,7 @@ data class HandStyle(
   val minuteHandLength: Float = 0.86f // 86% радиуса
 )
 
-data class TextStyle(
+data class NumeralTextStyle(
   val minuteTextSize: Float = 60f,
   val currentHourTextSize: Float = 55f,
   val oppositeHourTextSize: Float = 40f
@@ -37,7 +36,7 @@ data class TextStyle(
 data class TimePickerConfig(
   val colors: TimePickerColors = TimePickerColors(),
   val handStyle: HandStyle = HandStyle(),
-  val textStyle: TextStyle = TextStyle(),
+  val textStyle: NumeralTextStyle = NumeralTextStyle(),
   val showTimeText: Boolean = true,
   val showSnapSwitch: Boolean = true,
   val snapTo5Minutes: Boolean = true,
