@@ -2,6 +2,7 @@ package dev.analog
 
 import kotlin.math.PI
 import kotlin.math.atan2
+import kotlin.math.hypot
 import kotlin.math.roundToInt
 
 /**
@@ -54,4 +55,23 @@ internal object ClockMath {
 
   /** Округление минуты до ближайших 5 вниз — для переключателя snap. */
   fun floorTo5(minute: Int): Int = (minute / 5) * 5
+
+  /**
+   * Кратчайшее расстояние от точки (px, py) до отрезка (ax, ay)—(bx, by).
+   * Используется для выбора стрелки по близости к её линии «центр→кончик».
+   */
+  fun distanceToSegment(
+    px: Float, py: Float,
+    ax: Float, ay: Float,
+    bx: Float, by: Float
+  ): Float {
+    val abx = bx - ax
+    val aby = by - ay
+    val abLen2 = abx * abx + aby * aby
+    val t = if (abLen2 == 0f) 0f
+    else (((px - ax) * abx + (py - ay) * aby) / abLen2).coerceIn(0f, 1f)
+    val cx = ax + t * abx
+    val cy = ay + t * aby
+    return hypot(px - cx, py - cy)
+  }
 }

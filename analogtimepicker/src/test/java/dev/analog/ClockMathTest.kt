@@ -109,4 +109,32 @@ class ClockMathTest {
     assertEquals(10, ClockMath.floorTo5(13))
     assertEquals(55, ClockMath.floorTo5(59))
   }
+
+  // --- distanceToSegment ---
+
+  @Test
+  fun distance_point_on_segment_is_0() {
+    assertEquals(0f, ClockMath.distanceToSegment(5f, 0f, 0f, 0f, 10f, 0f), 0.001f)
+  }
+
+  @Test
+  fun distance_perpendicular_offset() {
+    assertEquals(3f, ClockMath.distanceToSegment(5f, 3f, 0f, 0f, 10f, 0f), 0.001f)
+  }
+
+  @Test
+  fun distance_beyond_end_uses_endpoint() {
+    // точка за концом отрезка — ближайшая точка это конец (10,0)
+    assertEquals(5f, ClockMath.distanceToSegment(15f, 0f, 0f, 0f, 10f, 0f), 0.001f)
+  }
+
+  @Test
+  fun distance_before_start_uses_startpoint() {
+    assertEquals(4f, ClockMath.distanceToSegment(-4f, 0f, 0f, 0f, 10f, 0f), 0.001f)
+  }
+
+  @Test
+  fun distance_degenerate_segment_is_point_distance() {
+    assertEquals(5f, ClockMath.distanceToSegment(3f, 4f, 0f, 0f, 0f, 0f), 0.001f)
+  }
 }
