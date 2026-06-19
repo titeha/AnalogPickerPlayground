@@ -30,6 +30,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
@@ -37,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import java.time.LocalTime
+import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
@@ -105,9 +107,37 @@ fun AnalogTimePicker(
     return ClockMath.to24Hour(hour12, pm)
   }
 
-  fun pickHand(position: Offset, center: Offset, dialRadius: Float): Hand {
-    val dist = (position - center).getDistance()
-    return if (dist > dialRadius * 0.85f) Hand.Minute else Hand.Hour
+  // Выбор стрелки по близости точки касания к её линии «центр→кончик».
+  // dialR — тот же радиус, что используется при отрисовке стрелок.
+  fun pickHand(position: Offset, center: Offset, dialR: Float): Hand {
+    val mm = minutes % 60
+    val hh = minutes / 60
+    val minuteRad = Math.toRadians((mm * 6 - 90).toDouble())
+    val hourRad = Math.toRadians(((hh % 12) * 30 - 90).toDouble())
+    val minuteTip = Offset(
+      center.x + cos(minuteRad).toFloat() * dialR * handStyle.minuteHandLength,
+      center.y + sin(minuteRad).toFloat() * dialR * handStyle.minuteHandLength
+    )
+    val hourTip = Offset(
+      center.x + cos(hourRad).toFloat() * dialR * handStyle.hourHandLength,
+      center.y + sin(hourRad).toFloat() * dialR * handStyle.hourHandLength
+    )
+    val dM = ClockMath.distanceToSegment(
+      position.x, position.y, center.x, center.y, minuteTip.x, minuteTip.y
+    )
+    val dH = ClockMath.distanceToSegment(
+      position.x, position.y, center.x, center.y, hourTip.x, hourTip.y
+    )
+    val touchDist = (position - center).getDistance()
+    return when {
+      // линии почти совпали (стрелки наложились) — решаем по радиусу:
+      // дальше кончика часовой это уже зона минутной
+      abs(dM - dH) <= 2f ->
+        if (touchDist > dialR * handStyle.hourHandLength) Hand.Minute else Hand.Hour
+
+      dM < dH -> Hand.Minute
+      else -> Hand.Hour
+    }
   }
 
   val h = minutes / 60
@@ -130,6 +160,23 @@ fun AnalogTimePicker(
     val minuteHandColor = colors.minuteHandColor ?: MaterialTheme.colorScheme.primary
     val textMeasurer = rememberTextMeasurer()
 
+    // Внешние минутные цифры рисуются на (r + numbersGap). Резервируем под них место
+    // (зазор + половина высоты цифры + запас), иначе их режет край Canvas.
+    // Один и тот же радиус используется при отрисовке и при выборе стрелки.
+    val density = LocalDensity.current
+    val numbersGap = 35f
+    val minuteNumberHeightPx = remember(textStyle.minuteTextSize, density, textMeasurer) {
+      textMeasurer.measure(
+        "60",
+        TextStyle(
+          fontSize = with(density) { textStyle.minuteTextSize.toSp() },
+          fontWeight = FontWeight.Bold
+        )
+      ).size.height
+    }
+    fun dialRadiusPx(w: Float, h: Float): Float =
+      min(w, h) / 2f - (numbersGap + minuteNumberHeightPx / 2f + 4f)
+
     Box(modifier = Modifier.size(config.radius * 2)) {
       Canvas(
         modifier = Modifier
@@ -143,7 +190,7 @@ fun AnalogTimePicker(
                 val pressedPointer = event.changes.find { it.pressed }
                 if (pressedPointer != null) {
                   val center = Offset(size.width / 2f, size.height / 2f)
-                  val r = min(size.width, size.height) / 2f
+                  val r = dialRadiusPx(size.width.toFloat(), size.height.toFloat())
 
                   val hand = selectedHand
                     ?: pickHand(pressedPointer.position, center, r).also { selectedHand = it }
@@ -170,7 +217,7 @@ fun AnalogTimePicker(
           }
       ) {
         val center = Offset(size.width / 2f, size.height / 2f)
-        val r = min(size.width, size.height) / 2f
+        val r = dialRadiusPx(size.width, size.height)
         val isPM = minutes >= 720
 
         // Рисуем циферблат
@@ -206,7 +253,7 @@ fun AnalogTimePicker(
           val minuteValue = i * 5
           val minuteText = if (minuteValue == 0) "60" else minuteValue.toString()
           // Позиция цифры (немного дальше от центра чем деления)
-          val textRadius = r + 35f
+          val textRadius = r + numbersGap
           val textPosition = Offset(
             center.x + cos(angle).toFloat() * textRadius,
             center.y + sin(angle).toFloat() * textRadius
