@@ -9,20 +9,21 @@ data class TimePickerColors(
   val dialStroke: Color = Color.Gray.copy(alpha = 0.32f),
   val hourHandColor: Color = Color(0xFFFFFF00),
   val hourHandColorPM: Color = Color(0xFFFF8000),
-  val minuteHandColor: Color = Color(0xFF2196F3),
+  /** null — взять primary из текущей MaterialTheme (поведение по умолчанию). */
+  val minuteHandColor: Color? = null,
   val centerDotColor: Color = Color.Black.copy(alpha = 0.6f),
   val timeTextColor: Color = Color.Yellow,
   val switchTextColor: Color = Color.Black,
   val divisionColor: Color = Color.Gray,
   val majorDivisionColor: Color = Color.DarkGray,
-  val minuteNumbersColor: Int = android.graphics.Color.LTGRAY,
-  val currentHourNumbersColor: Int = android.graphics.Color.LTGRAY,
-  val oppositeHourNumbersColor: Int = android.graphics.Color.GRAY
+  val minuteNumbersColor: Color = Color.LightGray,
+  val currentHourNumbersColor: Color = Color.LightGray,
+  val oppositeHourNumbersColor: Color = Color.Gray
 )
 
 data class HandStyle(
-  val hourHandWidth: Dp = 14.dp,
-  val minuteHandWidth: Dp = 8.dp,
+  val hourHandWidth: Float = 14f,    // толщина в px канвы
+  val minuteHandWidth: Float = 8f,   // толщина в px канвы
   val hourHandLength: Float = 0.5f,  // 50% радиуса
   val minuteHandLength: Float = 0.86f // 86% радиуса
 )

@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import dev.analog.AnalogTimePicker
 import dev.analog.AnalogTimePickerDialog
+import dev.analog.TimePickerConfig
 import java.time.LocalTime
 
 class MainActivity : ComponentActivity() {
@@ -43,7 +44,7 @@ class MainActivity : ComponentActivity() {
           AnalogTimePicker(
             time = time,
             onTimeChange = { time = it },
-            radius = 120.dp
+            config = TimePickerConfig(radius = 120.dp)
           )
 
           Spacer(Modifier.height(16.dp))
