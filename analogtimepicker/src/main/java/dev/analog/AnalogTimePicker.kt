@@ -28,6 +28,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -413,11 +414,13 @@ fun AnalogTimePicker(
     horizontalAlignment = Alignment.CenterHorizontally
   ) {
     if (showTimeText) {
+      // Unspecified → берём контрастный к фону цвет темы.
+      val timeColor = config.colors.timeTextColor.takeOrElse { MaterialTheme.colorScheme.onSurface }
       Text(
         text = "%02d:%02d".format(time.hour, time.minute),
         style = MaterialTheme.typography.headlineSmall,
         fontWeight = FontWeight.Bold,
-        color = config.colors.timeTextColor
+        color = timeColor
       )
       Spacer(Modifier.height(12.dp))
     }
