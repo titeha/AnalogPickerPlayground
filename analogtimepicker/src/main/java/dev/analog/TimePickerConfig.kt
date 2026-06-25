@@ -10,7 +10,7 @@ data class TimePickerColors(
   val dialStroke: Color = Color.Gray.copy(alpha = 0.32f),
   val centerDotColor: Color = Color.Black.copy(alpha = 0.6f),
   val timeTextColor: Color = Color.Unspecified, // Unspecified → onSurface темы (контраст к фону)
-  val switchTextColor: Color = Color.Black,
+  val switchTextColor: Color = Color.Unspecified, // Unspecified → onSurface темы (контраст к фону)
   val divisionColor: Color = Color.Gray,
   val majorDivisionColor: Color = Color.DarkGray,
   val minuteNumbersColor: Color = Color.LightGray,

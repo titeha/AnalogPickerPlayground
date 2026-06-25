@@ -10,10 +10,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -440,35 +439,34 @@ fun AnalogTimePicker(
     if (showSnapSwitch || showNowButton) {
       Spacer(Modifier.height(8.dp))
       Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
       ) {
         if (showSnapSwitch) {
-          // Компактный чип-тоггл вместо Switch+подписи.
-          FilterChip(
-            selected = snapEnabled,
-            onClick = {
-              val checked = !snapEnabled
+          // Switch + подпись: явное состояние вкл/выкл.
+          val labelColor = config.colors.switchTextColor.takeOrElse { MaterialTheme.colorScheme.onSurface }
+          Text(snapLabel, color = labelColor)
+          Switch(
+            checked = snapEnabled,
+            onCheckedChange = { checked ->
               snapEnabled = checked
               // При включении привязки сразу округляем текущую минуту
               if (checked) {
                 val rounded = ClockMath.floorTo5(time.minute)
                 if (rounded != time.minute) onTimeChange(time.withMinute(rounded))
               }
-            },
-            label = { Text(snapLabel) }
+            }
           )
         }
         if (showNowButton) {
-          // Лёгкий контрол «выставить текущее время» (с учётом привязки к 5 минутам).
-          AssistChip(
+          // Кнопка-действие (не тоггл): выставить текущее время с учётом привязки.
+          TextButton(
             onClick = {
               val now = LocalTime.now()
               val minute = if (snapEnabled) ClockMath.floorTo5(now.minute) else now.minute
               onTimeChange(LocalTime.of(now.hour, minute))
-            },
-            label = { Text(nowLabel) }
-          )
+            }
+          ) { Text(nowLabel) }
         }
       }
     }
