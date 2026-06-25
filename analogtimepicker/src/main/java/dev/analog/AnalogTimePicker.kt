@@ -3,16 +3,14 @@ package dev.analog
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -434,21 +432,20 @@ fun AnalogTimePicker(
 
     if (showSnapSwitch) {
       Spacer(Modifier.height(8.dp))
-      Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(snapLabel, color = config.colors.switchTextColor)
-        Spacer(Modifier.width(8.dp))
-        Switch(
-          checked = snapEnabled,
-          onCheckedChange = { checked ->
-            snapEnabled = checked
-            // При включении привязки сразу округляем текущую минуту
-            if (checked) {
-              val rounded = ClockMath.floorTo5(time.minute)
-              if (rounded != time.minute) onTimeChange(time.withMinute(rounded))
-            }
+      // Компактный чип-тоггл вместо Switch+подписи.
+      FilterChip(
+        selected = snapEnabled,
+        onClick = {
+          val checked = !snapEnabled
+          snapEnabled = checked
+          // При включении привязки сразу округляем текущую минуту
+          if (checked) {
+            val rounded = ClockMath.floorTo5(time.minute)
+            if (rounded != time.minute) onTimeChange(time.withMinute(rounded))
           }
-        )
-      }
+        },
+        label = { Text(snapLabel) }
+      )
     }
   }
 }
