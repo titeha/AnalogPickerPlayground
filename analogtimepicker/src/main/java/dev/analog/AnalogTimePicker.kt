@@ -1,13 +1,16 @@
 package dev.analog
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
@@ -393,6 +396,8 @@ fun AnalogClockDial(
  * @param showSnapSwitch показывать ли переключатель привязки к 5 минутам.
  * @param snapTo5Minutes начальное состояние привязки.
  * @param snapLabel подпись переключателя (для локализации задаётся потребителем).
+ * @param showNowButton показывать ли кнопку «выставить текущее время».
+ * @param nowLabel подпись кнопки текущего времени (для локализации задаётся потребителем).
  */
 @Composable
 fun AnalogTimePicker(
@@ -403,7 +408,9 @@ fun AnalogTimePicker(
   showTimeText: Boolean = true,
   showSnapSwitch: Boolean = true,
   snapTo5Minutes: Boolean = true,
-  snapLabel: String = "5 min"
+  snapLabel: String = "5 min",
+  showNowButton: Boolean = true,
+  nowLabel: String = "Now"
 ) {
   var snapEnabled by remember { mutableStateOf(snapTo5Minutes) }
 
@@ -430,22 +437,40 @@ fun AnalogTimePicker(
       snapTo5Minutes = snapEnabled
     )
 
-    if (showSnapSwitch) {
+    if (showSnapSwitch || showNowButton) {
       Spacer(Modifier.height(8.dp))
-      // Компактный чип-тоггл вместо Switch+подписи.
-      FilterChip(
-        selected = snapEnabled,
-        onClick = {
-          val checked = !snapEnabled
-          snapEnabled = checked
-          // При включении привязки сразу округляем текущую минуту
-          if (checked) {
-            val rounded = ClockMath.floorTo5(time.minute)
-            if (rounded != time.minute) onTimeChange(time.withMinute(rounded))
-          }
-        },
-        label = { Text(snapLabel) }
-      )
+      Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+      ) {
+        if (showSnapSwitch) {
+          // Компактный чип-тоггл вместо Switch+подписи.
+          FilterChip(
+            selected = snapEnabled,
+            onClick = {
+              val checked = !snapEnabled
+              snapEnabled = checked
+              // При включении привязки сразу округляем текущую минуту
+              if (checked) {
+                val rounded = ClockMath.floorTo5(time.minute)
+                if (rounded != time.minute) onTimeChange(time.withMinute(rounded))
+              }
+            },
+            label = { Text(snapLabel) }
+          )
+        }
+        if (showNowButton) {
+          // Лёгкий контрол «выставить текущее время» (с учётом привязки к 5 минутам).
+          AssistChip(
+            onClick = {
+              val now = LocalTime.now()
+              val minute = if (snapEnabled) ClockMath.floorTo5(now.minute) else now.minute
+              onTimeChange(LocalTime.of(now.hour, minute))
+            },
+            label = { Text(nowLabel) }
+          )
+        }
+      }
     }
   }
 }
@@ -461,6 +486,7 @@ fun AnalogTimePicker(
  * @param dismissButtonText текст кнопки отмены.
  * @param config оформление циферблата.
  * @param snapLabel подпись переключателя привязки к 5 минутам.
+ * @param nowLabel подпись кнопки «выставить текущее время».
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -472,7 +498,8 @@ fun AnalogTimePickerDialog(
   confirmButtonText: String = "OK",
   dismissButtonText: String = "Cancel",
   config: TimePickerConfig = TimePickerConfig(radius = 200.dp),
-  snapLabel: String = "5 min"
+  snapLabel: String = "5 min",
+  nowLabel: String = "Now"
 ) {
   var currentTime by remember { mutableStateOf(initialTime) }
   val typography = MaterialTheme.typography
@@ -491,7 +518,8 @@ fun AnalogTimePickerDialog(
         time = currentTime,
         onTimeChange = { newTime -> currentTime = newTime },
         config = config,
-        snapLabel = snapLabel
+        snapLabel = snapLabel,
+        nowLabel = nowLabel
       )
     },
     confirmButton = {
